@@ -1,0 +1,311 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Kamera GPS</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f1f5f9;
+    padding: 20px;
+    text-align: center;
+}
+
+.container {
+    max-width: 450px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+}
+
+button {
+    width: 100%;
+    padding: 14px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 10px;
+    background: #2563eb;
+    color: white;
+    font-size: 16px;
+}
+
+video, img {
+    width: 100%;
+    border-radius: 12px;
+    background: black;
+    margin-top: 10px;
+}
+
+#status {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Kamera dan GPS</h2>
+
+<p>
+Website ini menggunakan kamera dan lokasi
+setelah izin diberikan oleh pengguna.
+</p>
+
+<button onclick="startCamera()">
+Buka Kamera
+</button>
+
+<video id="video" autoplay playsinline></video>
+
+<button onclick="takePhoto()">
+Ambil Foto
+</button>
+
+<canvas id="canvas" hidden></canvas>
+
+<div id="photo"></div>
+
+<button onclick="savePhoto()">
+Simpan Foto
+</button>
+
+<hr>
+
+<button onclick="getLocation()">
+Ambil Lokasi GPS
+</button>
+
+<p id="status">
+Lokasi belum diambil.
+</p>
+
+<button onclick="openMaps()">
+Buka Google Maps
+</button>
+
+</div>
+
+<script>
+
+let stream = null;
+let photoBlob = null;
+let latitude = null;
+let longitude = null;
+
+
+// MEMBUKA KAMERA
+
+async function startCamera() {
+
+    try {
+
+        stream = await navigator.mediaDevices.getUserMedia({
+
+            video: {
+                facingMode: {
+                    ideal: "environment"
+                }
+            },
+
+            audio: false
+
+        });
+
+        document.getElementById("video").srcObject =
+            stream;
+
+    } catch (error) {
+
+        alert(
+            "Kamera tidak tersedia atau izin ditolak."
+        );
+
+    }
+
+}
+
+
+// MENGAMBIL FOTO
+
+function takePhoto() {
+
+    if (!stream) {
+
+        alert("Buka kamera terlebih dahulu.");
+
+        return;
+
+    }
+
+    const video = document.getElementById("video");
+
+    const canvas = document.getElementById("canvas");
+
+    canvas.width = video.videoWidth;
+
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext("2d");
+
+    context.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    canvas.toBlob(function(blob) {
+
+        if (!blob) {
+
+            alert("Foto gagal dibuat.");
+
+            return;
+
+        }
+
+        photoBlob = blob;
+
+        const image = document.createElement("img");
+
+        image.src = URL.createObjectURL(blob);
+
+        image.alt = "Foto hasil kamera";
+
+        const photo = document.getElementById("photo");
+
+        photo.replaceChildren(image);
+
+    }, "image/jpeg", 0.92);
+
+}
+
+
+// MENYIMPAN FOTO
+
+function savePhoto() {
+
+    if (!photoBlob) {
+
+        alert("Ambil foto terlebih dahulu.");
+
+        return;
+
+    }
+
+    const url = URL.createObjectURL(photoBlob);
+
+    const link = document.createElement("a");
+
+    link.href = url;
+
+    link.download = "foto-kamera.jpg";
+
+    link.click();
+
+    setTimeout(function() {
+
+        URL.revokeObjectURL(url);
+
+    }, 1500);
+
+}
+
+
+// MENGAMBIL LOKASI GPS
+
+function getLocation() {
+
+    if (!navigator.geolocation) {
+
+        alert("Browser tidak mendukung GPS.");
+
+        return;
+
+    }
+
+    document.getElementById("status").innerText =
+        "Meminta izin lokasi...";
+
+    navigator.geolocation.getCurrentPosition(
+
+        function(position) {
+
+            latitude =
+                position.coords.latitude;
+
+            longitude =
+                position.coords.longitude;
+
+            document.getElementById("status").innerText =
+
+                "Latitude: " + latitude +
+
+                "\nLongitude: " + longitude +
+
+                "\nAkurasi: " +
+
+                Math.round(position.coords.accuracy) +
+
+                " meter";
+
+        },
+
+        function(error) {
+
+            document.getElementById("status").innerText =
+
+                "Lokasi tidak tersedia atau izin ditolak.";
+
+        },
+
+        {
+
+            enableHighAccuracy: true,
+
+            timeout: 20000,
+
+            maximumAge: 0
+
+        }
+
+    );
+
+}
+
+
+// MEMBUKA GOOGLE MAPS
+
+function openMaps() {
+
+    if (latitude === null || longitude === null) {
+
+        alert("Ambil lokasi terlebih dahulu.");
+
+        return;
+
+    }
+
+    const url =
+
+        "https://www.google.com/maps?q=" +
+
+        latitude + "," + longitude;
+
+    window.open(url, "_blank");
+
+}
+
+</script>
+
+</body>
+</html>
